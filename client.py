@@ -36,11 +36,22 @@ if not PORT:
     PORT = 1234
 else:
     PORT = int(PORT)
-FONT = input('Enter desired font("CS") or leave blank ')
-if not FONT:
+FONT = input('Enter desired font("CS") or leave blank for default: ')
+if not FONT or FONT != 'CS':
+    print("no font/no known font entered setting default")
     FONT = ''
 elif FONT == 'CS':
     FONT = 'Comic Sans MS'
+FONT_SIZE = input("Enter desired font-size:(5-25) ")
+try:
+    if 5 <= int(FONT_SIZE) <= 25:
+        FONT_SIZE = int(FONT_SIZE)
+    else:
+        print("Entered value out of range, setting default")
+        FONT_SIZE = 15
+except ValueError:
+    print("setting default font-size")
+    FONT_SIZE = 15
 
 
 window = Tk()
@@ -50,7 +61,7 @@ messages_frame = Frame(window, bg="black", bd=7)
 my_message = StringVar()
 #scrollbar = Scrollbar(messages_frame)
 
-message_list = Listbox(messages_frame, height=25, width=90, bg="black", fg="green", selectbackground="green", selectforeground="black", font=(FONT, 15))
+message_list = Listbox(messages_frame, height=25, width=90, bg="black", fg="green", selectbackground="green", selectforeground="black", font=(FONT, FONT_SIZE))
 #scrollbar.pack(side=RIGHT, fill=Y)
 message_list.pack(side=LEFT, fill=BOTH)
 message_list.pack()
