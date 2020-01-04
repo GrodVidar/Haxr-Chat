@@ -15,9 +15,13 @@ except ValueError:
 
 MAX_CLIENTS = input("Enter maximum amount of clients:(1-20) ")
 try:
-    MAX_CLIENTS = int(MAX_CLIENTS)
+    if 1<= int(MAX_CLIENTS) <= 20:
+        MAX_CLIENTS = int(MAX_CLIENTS)
+    else:
+        print("Value out of range, setting default: 5")
+        MAX_CLIENTS = 5
 except ValueError:
-    print("Value out of range or not valid, setting default: 5")
+    print("Value not valid, setting default: 5")
     MAX_CLIENTS = 5
 
 BUFFSIZE = 1024
