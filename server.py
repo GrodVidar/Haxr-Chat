@@ -6,7 +6,12 @@ clients = {}
 addresses = {}
 
 HOST = ''
-PORT = 1234
+PORT = input("enter port: ")
+try:
+    PORT = int(PORT)
+except ValueError:
+    print("invalid Port, setting to 1234")
+    PORT = 1234
 BUFFSIZE = 1024
 SERVER = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 SERVER.bind((HOST, PORT))
