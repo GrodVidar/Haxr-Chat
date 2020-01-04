@@ -24,7 +24,7 @@ def handler(client):
     clients[client] = name
     while True:
         message = client.recv(BUFFSIZE)
-        if message != bytes("{quit}", 'utf-8'):
+        if message != bytes("quit()", 'utf-8'):
             broadcast(message, name+': ')
         else:
             print("quitting.")
