@@ -1,6 +1,8 @@
 from socket import AF_INET, socket, SOCK_STREAM
 from threading import Thread
 from tkinter import *
+from tkinter import font
+
 
 
 def receive():
@@ -17,15 +19,14 @@ def send(event=None):
     message = my_message.get()
     my_message.set("")  # Clears input field.
     client_socket.send(bytes(message, "utf8"))
-    if message == "{quit}":
+    if message == "quit()":
         client_socket.close()
         window.quit()
 
 
 def on_closing(event=None):
-    my_message.set("{quit}")
+    my_message.set("quit()")
     send()
-
 
 HOST = input('Enter host: ')
 if not HOST:
@@ -35,6 +36,12 @@ if not PORT:
     PORT = 1234
 else:
     PORT = int(PORT)
+FONT = input('Enter desired font("CS") or leave blank ')
+if not FONT:
+    FONT = ''
+elif FONT == 'CS':
+    FONT = 'Comic Sans MS'
+
 
 window = Tk()
 window.title("Haxr-Chat")
@@ -43,7 +50,7 @@ messages_frame = Frame(window, bg="black", bd=7)
 my_message = StringVar()
 #scrollbar = Scrollbar(messages_frame)
 
-message_list = Listbox(messages_frame, height=40, width=90, bg="black", fg="green", selectbackground="green", selectforeground="black")
+message_list = Listbox(messages_frame, height=25, width=90, bg="black", fg="green", selectbackground="green", selectforeground="black", font=(FONT, 15))
 #scrollbar.pack(side=RIGHT, fill=Y)
 message_list.pack(side=LEFT, fill=BOTH)
 message_list.pack()

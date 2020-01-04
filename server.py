@@ -19,7 +19,7 @@ def broadcast(message, prefix=''):
 
 def handler(client):
     name = client.recv(BUFFSIZE).decode('utf-8')
-    client.send(bytes("welcome %s, to quit type {quit}" % name, 'utf-8'))
+    client.send(bytes("welcome %s, to quit type quit()" % name, 'utf-8'))
     broadcast(bytes(f"{name} has joined the chat!", 'utf-8'))
     clients[client] = name
     while True:
