@@ -12,6 +12,14 @@ try:
 except ValueError:
     print("invalid Port, setting to 1234")
     PORT = 1234
+
+MAX_CLIENTS = input("Enter maximum amount of clients:(1-20) ")
+try:
+    MAX_CLIENTS = int(MAX_CLIENTS)
+except ValueError:
+    print("Value out of range or not valid, setting default: 5")
+    MAX_CLIENTS = 5
+
 BUFFSIZE = 1024
 SERVER = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 SERVER.bind((HOST, PORT))
@@ -49,7 +57,8 @@ def accept_connections():
 
 
 if __name__ == "__main__":
-    SERVER.listen(5)
+
+    SERVER.listen(MAX_CLIENTS)
     print("Awaiting connections...")
     ACCEPT_THREAD = threading.Thread(target=accept_connections)
     ACCEPT_THREAD.start()
