@@ -1,6 +1,6 @@
 import socket
 import threading
-from datetime import date
+from datetime import date, datetime
 import sys
 import sqlite3
 
@@ -50,7 +50,8 @@ def broadcast(message, prefix='Unknown: '):
 
     today = date.today()
     create_table(today)
-    date_format = today.strftime("[%d %b-%y]")
+    # date_format = today.strftime("[%d %b-%y]")
+    date_format = datetime.now().strftime('[%Y-%m-%d|%H:%M:%S]')
     data_entry(today, date_format, prefix, message.decode('utf-8'))
     for s in clients:
         s.send(bytes(date_format + ' ' + prefix, 'utf-8')+message)
@@ -63,7 +64,7 @@ def handler(client):
         name = 'Unknown'
     # TODO: for loopa igenom databasens table för att visa tidigare meddelanden för clienten ☺ så typ for message in db: client.send(bytes(f"{time} {name}: {message}"))
     client.send(bytes("welcome %s, to quit type quit()" % name, 'utf-8'))
-    broadcast(bytes(f"{name} has joined the chat!", 'utf-8'), 'Announcer: ')
+    broadcast(bytes(f"[{name}] has joined the chat!", 'utf-8'), 'Announcer: ')
     clients[client] = name
     while True:
         message = client.recv(BUFFSIZE)
@@ -73,7 +74,7 @@ def handler(client):
             print("quitting.")
             client.close()
             del clients[client]
-            broadcast(bytes(f"{name} has left the chat.", 'utf-8'), 'Announcer: ')
+            broadcast(bytes(f"({name}) has left the chat.", 'utf-8'), 'Announcer: ')
             break
 
 

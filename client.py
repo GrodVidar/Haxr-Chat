@@ -1,14 +1,24 @@
 from socket import AF_INET, socket, SOCK_STREAM
 from threading import Thread
 from tkinter import *
+import re
 from tkinter import font
-
 
 
 def receive():
     while True:
         try:
             message = client_socket.recv(BUFFSIZE).decode('utf-8')
+            if 'Announcer' in message:
+                if bool(re.search(r'\[(\w+)\]', message)):
+                    client = re.search(r'\[(\w+)\]', message)
+                    CLIENTS.append(client.group(1))
+                    for client in CLIENTS:
+                        clients_list.insert(END, client)
+                elif bool(re.search(r'\((\w+)\)', message)):
+                    client = re.search(r'\((\w+)\)', message)
+                    clients_list.delete(CLIENTS.index(client.group(1))+1)  # +1 to not remove online: 
+                    CLIENTS.remove(client.group(1))
             message_list.insert(END, message)
             message_list.see(END)
         except OSError:
@@ -53,25 +63,30 @@ except ValueError:
     print("setting default font-size")
     FONT_SIZE = 15
 
-
+CLIENTS = []
 window = Tk()
 window.title("Haxr-Chat")
 window.configure(background="black")
-messages_frame = Frame(window, bg="black", bd=7)
+top_frame = Frame(window, bg="black")
+top_frame.pack()
+bottom_frame = Frame(window, bg="black")
+bottom_frame.pack(side=BOTTOM)
 my_message = StringVar()
-#scrollbar = Scrollbar(messages_frame)
 
-message_list = Listbox(messages_frame, height=25, width=90, bg="black", fg="green", selectbackground="green", selectforeground="black", font=(FONT, FONT_SIZE))
-#scrollbar.pack(side=RIGHT, fill=Y)
-message_list.pack(side=LEFT, fill=BOTH)
+clients_list = Listbox(top_frame, height=15, width=10, bg="black", fg="green", selectbackground="green", selectforeground="black", font=(FONT, FONT_SIZE))
+message_list = Listbox(top_frame, height=25, width=90, bg="black", fg="green", selectbackground="green", selectforeground="black", font=(FONT, FONT_SIZE))
+clients_list.pack(side=LEFT)
+message_list.pack(side=RIGHT)
+clients_list.pack()
 message_list.pack()
-messages_frame.pack()
 
-entry_field = Entry(window, textvariable=my_message, bg="black", fg="green", selectbackground="green", selectforeground="black")
+entry_field = Entry(bottom_frame, textvariable=my_message, bg="black", fg="green", selectbackground="green", selectforeground="black")
 entry_field.bind("<Return>", send)
 entry_field.pack()
-send_button = Button(window, text="Send", command=send)
+send_button = Button(bottom_frame, text="Send", command=send)
 send_button.pack()
+
+clients_list.insert(END, "Online:")
 
 
 window.protocol("WM_DELETE_WINDOW", on_closing)
