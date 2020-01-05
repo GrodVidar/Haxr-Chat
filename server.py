@@ -84,7 +84,7 @@ def send_daily_to_client(client):
         for row in messages_cursor.fetchall():
             if 'Announcer' not in row[1]:
                 client.send(bytes(f"{row[0]} {row[1]}{row[2]}", 'utf-8'))
-                sleep(.01)
+                sleep(.05)
 
 
 def send_users_to_client(client):
@@ -94,7 +94,7 @@ def send_users_to_client(client):
         for row in clients_cursor.fetchall():
             print(f"sending {row[0]} to client")
             client.send(bytes(f"!{row[0]}", 'utf-8'))
-            sleep(.01)
+            sleep(.05)
 
 
 def handler(client):
