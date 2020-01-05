@@ -120,9 +120,12 @@ def accept_connections():
         threading.Thread(target=handler, args=(client,)).start()
 
 
-if __name__ == "__main__":
 
+if __name__ == "__main__":
     SERVER.listen(MAX_CLIENTS)
+    clients_cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='clients'")
+    if clients_cursor.fetchone()[0] == 1:
+        clients_cursor.execute("DROP TABLE clients")
     print("Awaiting connections...")
     ACCEPT_THREAD = threading.Thread(target=accept_connections)
     ACCEPT_THREAD.start()
