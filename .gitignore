@@ -1,6 +1,7 @@
 # custom ignores
 *.idea
 *venv
+*.db
 
 ### Python ###
 # Byte-compiled / optimized / DLL files
