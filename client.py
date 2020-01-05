@@ -13,27 +13,18 @@ def update_online():
         clients_list.insert(END, client)
 
 
-def get_online_users():
-    clients_connection = sqlite3.connect('online_users.db', check_same_thread=False)
-    clients_cursor = clients_connection.cursor()
-    clients_cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='clients'")
-    if clients_cursor.fetchone()[0] == 1:
-        clients_cursor.execute("SELECT users FROM clients")
-        for row in clients_cursor.fetchall():
-            if row[0] not in CLIENTS:
-                print(f"adding {row[0]} to list")
-                CLIENTS.append(row[0])
-    clients_cursor.close()
-    clients_connection.close()
-
-
 def receive():
     while True:
         try:
             message = client_socket.recv(BUFFSIZE).decode('utf-8')
+            if message[0] == '!':
+                print(f"appending {message[1:]}")
+                CLIENTS.append(message[1:])
+                update_online()
             if 'Announcer' in message:
                 if bool(re.search(r'\[(\w+)\]', message)):
-                    get_online_users()
+                    client = re.search(r'\[(\w+)\]', message)
+                    CLIENTS.append(client.group(1))
                     update_online()
                 elif bool(re.search(r'\((\w+)\)', message)):
                     client = re.search(r'\((\w+)\)', message)
@@ -44,10 +35,10 @@ def receive():
                         CLIENTS.remove(client.group(1))
                         update_online()
             elif 'quit()' in message:
-                get_online_users()
                 update_online()
-            message_list.insert(END, message)
-            message_list.see(END)
+            if message[0] != '!':
+                message_list.insert(END, message)
+                message_list.see(END)
         except OSError:
             break
 
@@ -103,7 +94,7 @@ top_frame.pack()
 bottom_frame = Frame(window, bg="black")
 bottom_frame.pack(side=BOTTOM)
 my_message = StringVar()
-get_online_users()
+
 
 clients_list = Listbox(top_frame, height=15, width=10, bg="black", fg="green", selectbackground="green", selectforeground="black", font=(FONT, FONT_SIZE))
 message_list = Listbox(top_frame, height=25, width=90, bg="black", fg="green", selectbackground="green", selectforeground="black", font=(FONT, FONT_SIZE))

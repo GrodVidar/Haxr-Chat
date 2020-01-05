@@ -3,8 +3,9 @@ import threading
 from datetime import date, datetime
 import sys
 import sqlite3
+from time import sleep
 
-
+CLIENTS = []
 clients = {}
 addresses = {}
 
@@ -74,13 +75,25 @@ def broadcast(message, prefix='Unknown: '):
         s.send(bytes(date_format + ' ' + prefix, 'utf-8')+message)
 
 
+def send_users_to_client(client):
+    clients_cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='clients'")
+    if clients_cursor.fetchone()[0] == 1:
+        clients_cursor.execute("SELECT users FROM clients")
+        for row in clients_cursor.fetchall():
+            print(f"adding {row[0]} to list")
+            client.send(bytes(f"!{row[0]}", 'utf-8'))
+            sleep(.2)
+
+
 def handler(client):
     name = client.recv(BUFFSIZE).decode('utf-8')
     if len(name) == 1:
         client.send(bytes("name too short, setting name to Unknown", 'utf-8'))
         name = 'Unknown'
+    CLIENTS.append(name)
     create_table_clients()
     data_entry_clients(name)
+    send_users_to_client(client)
     # TODO: for loopa igenom databasens table för att visa tidigare meddelanden för clienten ☺ så typ for message in db: client.send(bytes(f"{time} {name}: {message}"))
     client.send(bytes("welcome %s, to quit type quit()" % name, 'utf-8'))
     broadcast(bytes(f"[{name}] has joined the chat!", 'utf-8'), 'Announcer: ')
@@ -90,7 +103,7 @@ def handler(client):
         if message != bytes("quit()", 'utf-8'):
             broadcast(message, name+': ')
         else:
-            print("quitting.")
+            print(f"user: {name} left.")
             client.close()
             del clients[client]
             broadcast(bytes(f"({name}) has left the chat.", 'utf-8'), 'Announcer: ')
