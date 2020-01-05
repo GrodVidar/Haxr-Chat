@@ -75,6 +75,18 @@ def broadcast(message, prefix='Unknown: '):
         s.send(bytes(date_format + ' ' + prefix, 'utf-8')+message)
 
 
+def send_daily_to_client(client):
+    today = date.today()
+    table = today.strftime('%B_%d_%Y')
+    messages_cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name=(?)", (table,))
+    if messages_cursor.fetchone()[0] == 1:
+        messages_cursor.execute(f"SELECT * from {table}")
+        for row in messages_cursor.fetchall():
+            if 'Announcer' not in row[1]:
+                client.send(bytes(f"{row[0]} {row[1]}{row[2]}", 'utf-8'))
+                sleep(.01)
+
+
 def send_users_to_client(client):
     clients_cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='clients'")
     if clients_cursor.fetchone()[0] == 1:
@@ -82,7 +94,7 @@ def send_users_to_client(client):
         for row in clients_cursor.fetchall():
             print(f"sending {row[0]} to client")
             client.send(bytes(f"!{row[0]}", 'utf-8'))
-            sleep(.05)
+            sleep(.01)
 
 
 def handler(client):
@@ -94,6 +106,7 @@ def handler(client):
     create_table_clients()
     data_entry_clients(name)
     send_users_to_client(client)
+    send_daily_to_client(client)
     # TODO: for loopa igenom databasens table för att visa tidigare meddelanden för clienten ☺ så typ for message in db: client.send(bytes(f"{time} {name}: {message}"))
     client.send(bytes("welcome %s, to quit type quit()" % name, 'utf-8'))
     broadcast(bytes(f"[{name}] has joined the chat!", 'utf-8'), 'Announcer: ')

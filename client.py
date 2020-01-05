@@ -30,7 +30,6 @@ def receive():
                     client = re.search(r'\((\w+)\)', message)
                     print(f"delete {client.group(1)}")
                     if str(client.group(1)) in CLIENTS:
-                        print("deleting")
                         clients_list.delete(CLIENTS.index(client.group(1))+1)
                         CLIENTS.remove(client.group(1))
                         update_online()
