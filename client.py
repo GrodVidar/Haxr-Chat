@@ -21,7 +21,7 @@ def receive():
                 print(f"appending {message[1:]}")
                 CLIENTS.append(message[1:])
                 update_online()
-            if 'Announcer' in message:
+            elif 'Announcer' in message:
                 if bool(re.search(r'\[(\w+)\]', message)):
                     client = re.search(r'\[(\w+)\]', message)
                     CLIENTS.append(client.group(1))
@@ -123,5 +123,6 @@ client_socket = socket(AF_INET, SOCK_STREAM)
 client_socket.connect((HOST, PORT))
 
 receive_thread = Thread(target=receive)
+receive_thread.daemon = True
 receive_thread.start()
 mainloop()

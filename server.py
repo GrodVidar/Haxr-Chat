@@ -80,9 +80,9 @@ def send_users_to_client(client):
     if clients_cursor.fetchone()[0] == 1:
         clients_cursor.execute("SELECT users FROM clients")
         for row in clients_cursor.fetchall():
-            print(f"adding {row[0]} to list")
+            print(f"sending {row[0]} to client")
             client.send(bytes(f"!{row[0]}", 'utf-8'))
-            sleep(.2)
+            sleep(.05)
 
 
 def handler(client):
