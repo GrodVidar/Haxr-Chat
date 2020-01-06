@@ -2,17 +2,17 @@ import socket
 import threading
 from datetime import date, datetime
 import sys
+import os
 import sqlite3
 from time import sleep
 
-CLIENTS = []
-clients = {}
-addresses = {}
 
-messages_connection = sqlite3.connect('chat.db', check_same_thread=False)
-messages_cursor = messages_connection.cursor()
-clients_connection = sqlite3.connect('online_users.db', check_same_thread=False)
-clients_cursor = clients_connection.cursor()
+
+def restart(port, clients):
+    print("argv was", sys.argv)
+    print("sys.executable was", sys.executable)
+    print("restart now")
+    os.execv(sys.executable, ['python', 'server.py', str(port), str(clients)])
 
 
 def ask_for_port():
@@ -36,41 +36,6 @@ def ask_for_max_clients():
     except ValueError:
         print("Value not valid, setting default: 5")
         return 5
-
-
-HOST = ''
-if len(sys.argv) >= 2:
-    try:
-        PORT = int(sys.argv[1])
-    except ValueError:
-        PORT = input("enter port: ")
-        try:
-            PORT = int(PORT)
-        except ValueError:
-            print("invalid Port, setting to 1234")
-            PORT = 1234
-else:
-    PORT = ask_for_port()
-if len(sys.argv) >= 3:
-    try:
-        MAX_CLIENTS = int(sys.argv[2])
-    except ValueError:
-        MAX_CLIENTS = input("Enter maximum amount of clients:(1-20) ")
-        try:
-            if 1 <= int(MAX_CLIENTS) <= 20:
-                MAX_CLIENTS = int(MAX_CLIENTS)
-            else:
-                print("Value out of range, setting default: 5")
-                MAX_CLIENTS = 5
-        except ValueError:
-            print("Value not valid, setting default: 5")
-            MAX_CLIENTS = 5
-else:
-    MAX_CLIENTS = ask_for_max_clients()
-
-BUFFSIZE = 1024
-SERVER = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-SERVER.bind((HOST, PORT))
 
 
 def create_table_messages(today):
@@ -117,8 +82,11 @@ def send_daily_to_client(client):
         messages_cursor.execute(f"SELECT * from {table}")
         for row in messages_cursor.fetchall():
             if 'Announcer' not in row[1]:
-                client.send(bytes(f"{row[0]} {row[1]}{row[2]}", 'utf-8'))
-                sleep(.05)
+                try:
+                    client.send(bytes(f"{row[0]} {row[1]}{row[2]}", 'utf-8'))
+                    sleep(.05)
+                except ConnectionResetError:
+                    return
 
 
 def send_users_to_client(client):
@@ -132,30 +100,37 @@ def send_users_to_client(client):
 
 
 def handler(client):
-    name = client.recv(BUFFSIZE).decode('utf-8')
-    if len(name) == 1:
-        client.send(bytes("name too short, setting name to Unknown", 'utf-8'))
-        name = 'Unknown'
-    CLIENTS.append(name)
-    create_table_clients()
-    data_entry_clients(name)
-    send_users_to_client(client)
-    send_daily_to_client(client)
-    # TODO: for loopa igenom databasens table för att visa tidigare meddelanden för clienten ☺ så typ for message in db: client.send(bytes(f"{time} {name}: {message}"))
-    client.send(bytes("welcome %s, to quit type quit()" % name, 'utf-8'))
-    broadcast(bytes(f"[{name}] has joined the chat!", 'utf-8'), 'Announcer: ')
-    clients[client] = name
-    while True:
-        message = client.recv(BUFFSIZE)
-        if message != bytes("quit()", 'utf-8'):
-            broadcast(message, name+': ')
-        else:
-            print(f"user: {name} left.")
-            client.close()
-            del clients[client]
-            broadcast(bytes(f"({name}) has left the chat.", 'utf-8'), 'Announcer: ')
-            delete_client(name)
-            break
+    try:
+        name = client.recv(BUFFSIZE).decode('utf-8')
+        if len(name) == 1:
+            client.send(bytes("name too short, setting name to Unknown", 'utf-8'))
+            name = 'Unknown'
+        CLIENTS.append(name)
+        create_table_clients()
+        data_entry_clients(name)
+        send_users_to_client(client)
+        send_daily_to_client(client)
+        # TODO: for loopa igenom databasens table för att visa tidigare meddelanden för clienten ☺ så typ for message in db: client.send(bytes(f"{time} {name}: {message}"))
+        client.send(bytes("welcome %s, to quit type quit()" % name, 'utf-8'))
+        broadcast(bytes(f"[{name}] has joined the chat!", 'utf-8'), 'Announcer: ')
+        clients[client] = name
+        while True:
+            try:
+                message = client.recv(BUFFSIZE)
+            except ConnectionResetError:
+                restart(PORT, MAX_CLIENTS)
+            if message != bytes("quit()", 'utf-8'):
+                broadcast(message, name+': ')
+            else:
+                print(f"user: {name} left.")
+                client.close()
+                del clients[client]
+                broadcast(bytes(f"({name}) has left the chat.", 'utf-8'), 'Announcer: ')
+                delete_client(name)
+                break
+    except ConnectionResetError:
+        print("client disconnected without giving a username. :(")
+        return
 
 
 def accept_connections():
@@ -167,8 +142,50 @@ def accept_connections():
         threading.Thread(target=handler, args=(client,)).start()
 
 
-
 if __name__ == "__main__":
+    CLIENTS = []
+    clients = {}
+    addresses = {}
+
+    messages_connection = sqlite3.connect('chat.db', check_same_thread=False)
+    messages_cursor = messages_connection.cursor()
+    clients_connection = sqlite3.connect('online_users.db', check_same_thread=False)
+    clients_cursor = clients_connection.cursor()
+
+    HOST = ''
+    if len(sys.argv) >= 2:
+        try:
+            PORT = int(sys.argv[1])
+        except ValueError:
+            PORT = input("enter port: ")
+            try:
+                PORT = int(PORT)
+            except ValueError:
+                print("invalid Port, setting to 1234")
+                PORT = 1234
+    else:
+        PORT = ask_for_port()
+    if len(sys.argv) >= 3:
+        try:
+            MAX_CLIENTS = int(sys.argv[2])
+        except ValueError:
+            MAX_CLIENTS = input("Enter maximum amount of clients:(1-20) ")
+            try:
+                if 1 <= int(MAX_CLIENTS) <= 20:
+                    MAX_CLIENTS = int(MAX_CLIENTS)
+                else:
+                    print("Value out of range, setting default: 5")
+                    MAX_CLIENTS = 5
+            except ValueError:
+                print("Value not valid, setting default: 5")
+                MAX_CLIENTS = 5
+    else:
+        MAX_CLIENTS = ask_for_max_clients()
+
+    BUFFSIZE = 1024
+    SERVER = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    SERVER.bind((HOST, PORT))
+
     SERVER.listen(MAX_CLIENTS)
     clients_cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='clients'")
     if clients_cursor.fetchone()[0] == 1:
