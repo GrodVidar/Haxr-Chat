@@ -15,24 +15,58 @@ clients_connection = sqlite3.connect('online_users.db', check_same_thread=False)
 clients_cursor = clients_connection.cursor()
 
 
-HOST = ''
-PORT = input("enter port: ")
-try:
-    PORT = int(PORT)
-except ValueError:
-    print("invalid Port, setting to 1234")
-    PORT = 1234
+def ask_for_port():
+    port = input("enter port: ")
+    try:
+        port = int(port)
+        return port
+    except ValueError:
+        print("invalid Port, setting to 1234")
+        return 1234
 
-MAX_CLIENTS = input("Enter maximum amount of clients:(1-20) ")
-try:
-    if 1 <= int(MAX_CLIENTS) <= 20:
-        MAX_CLIENTS = int(MAX_CLIENTS)
-    else:
-        print("Value out of range, setting default: 5")
-        MAX_CLIENTS = 5
-except ValueError:
-    print("Value not valid, setting default: 5")
-    MAX_CLIENTS = 5
+
+def ask_for_max_clients():
+    max_clients = input("Enter maximum amount of clients:(1-20) ")
+    try:
+        if 1 <= int(max_clients) <= 20:
+            return int(max_clients)
+        else:
+            print("Value out of range, setting default: 5")
+            return 5
+    except ValueError:
+        print("Value not valid, setting default: 5")
+        return 5
+
+
+HOST = ''
+if len(sys.argv) >= 2:
+    try:
+        PORT = int(sys.argv[1])
+    except ValueError:
+        PORT = input("enter port: ")
+        try:
+            PORT = int(PORT)
+        except ValueError:
+            print("invalid Port, setting to 1234")
+            PORT = 1234
+else:
+    PORT = ask_for_port()
+if len(sys.argv) >= 3:
+    try:
+        MAX_CLIENTS = int(sys.argv[2])
+    except ValueError:
+        MAX_CLIENTS = input("Enter maximum amount of clients:(1-20) ")
+        try:
+            if 1 <= int(MAX_CLIENTS) <= 20:
+                MAX_CLIENTS = int(MAX_CLIENTS)
+            else:
+                print("Value out of range, setting default: 5")
+                MAX_CLIENTS = 5
+        except ValueError:
+            print("Value not valid, setting default: 5")
+            MAX_CLIENTS = 5
+else:
+    MAX_CLIENTS = ask_for_max_clients()
 
 BUFFSIZE = 1024
 SERVER = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

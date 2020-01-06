@@ -1,9 +1,9 @@
 from socket import AF_INET, socket, SOCK_STREAM
 from threading import Thread
 from tkinter import *
+import sys
 import re
-import sqlite3
-from tkinter import font
+from tkinter import font # om vi vill lägga till fonts, venne hur viktigt det är lmao
 
 
 def update_online():
@@ -58,30 +58,99 @@ def on_closing(event=None):
     send()
 
 
-HOST = input('Enter host: ')
-if not HOST:
-    HOST = '127.0.0.1'
-PORT = input('Enter port: ')
-if not PORT:
-    PORT = 1234
-else:
-    PORT = int(PORT)
-FONT = input('Enter desired font("CS") or leave blank for default: ')
-if not FONT or FONT != 'CS':
-    print("no font/no known font entered setting default")
-    FONT = ''
-elif FONT == 'CS':
-    FONT = 'Comic Sans MS'
-FONT_SIZE = input("Enter desired font-size:(5-25) ")
-try:
-    if 5 <= int(FONT_SIZE) <= 25:
-        FONT_SIZE = int(FONT_SIZE)
+def ask_for_host():
+    host = input('Enter host: ')
+    if not host:
+        return '127.0.0.1'
+    return host
+
+
+def ask_for_port():
+    port = input('Enter port: ')
+    if not port:
+        return 1234
     else:
-        print("Entered value out of range, setting default")
-        FONT_SIZE = 15
-except ValueError:
-    print("setting default font-size")
-    FONT_SIZE = 15
+        try:
+            return int(port)
+        except ValueError:
+            return 1234
+
+
+def ask_for_font():
+    my_font = input('Enter desired font("CS") or leave blank for default: ')
+    if not my_font or my_font != 'CS':
+        print("no font/no known font entered setting default")
+        return ''
+    else:
+        return 'Comic Sans MS'
+
+
+def ask_for_font_size():
+    font_size = input("Enter desired font-size:(5-25) ")
+    try:
+        if 5 <= int(font_size) <= 25:
+            return int(font_size)
+        else:
+            print("Entered value out of range, setting default")
+            return 15
+    except ValueError:
+        print("setting default font-size")
+        return 15
+
+
+if len(sys.argv) >= 2:
+    try:
+        HOST = sys.argv[1]
+    except ValueError:
+        HOST = input('Enter host: ')
+        if not HOST:
+            HOST = '127.0.0.1'
+else:
+    HOST = ask_for_host()
+
+if len(sys.argv) >= 3:
+    try:
+        PORT = int(sys.argv[2])
+    except ValueError:
+        PORT = input('Enter port: ')
+        if not PORT:
+            PORT = 1234
+        else:
+            try:
+                PORT = int(PORT)
+            except ValueError:
+                PORT = 1234
+else:
+    PORT = ask_for_port()
+
+if len(sys.argv) >= 4:
+    if sys.argv[3] != 'CS':
+        FONT = ''
+    else:
+        FONT = 'Comic Sans MS'
+else:
+    FONT = ask_for_font()
+
+if len(sys.argv) >=5:
+    try:
+        if 5 <= int(sys.argv[4]) <= 25:
+            FONT_SIZE = int(sys.argv[4])
+        else:
+            print("Font-value out of range, setting default")
+            FONT_SIZE = 15
+    except ValueError:
+        FONT_SIZE = input("Enter desired font-size:(5-25) ")
+        try:
+            if 5 <= int(FONT_SIZE) <= 25:
+                FONT_SIZE = int(FONT_SIZE)
+            else:
+                print("Entered value out of range, setting default")
+                FONT_SIZE = 15
+        except ValueError:
+            print("setting default font-size")
+            FONT_SIZE = 15
+else:
+    FONT_SIZE = ask_for_font_size()
 
 
 CLIENTS = []
