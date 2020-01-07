@@ -87,6 +87,7 @@ def send_temp():
             if int(datetime.now().strftime('%M')) % 5 == 0 and not sent_this_minute:
                 resp = requests.get(f"https://api.openweathermap.org/data/2.5/weather?id=2673730&APPID={key}&units=metric")
                 my_json = json.loads(resp.text)
+                print(my_json)
                 broadcast(bytes(f"the weather in {my_json['name']} is {my_json['main']['temp']} C°", 'utf-8'), 'Weather-announcer: ')
                 sent_this_minute = True
             elif int(datetime.now().strftime('%M')) % 5 != 0 and sent_this_minute:
