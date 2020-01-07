@@ -7,12 +7,11 @@ import sqlite3
 from time import sleep
 
 
-
-def restart(port, clients):
+def restart(port, my_clients):
     print("argv was", sys.argv)
     print("sys.executable was", sys.executable)
     print("restart now")
-    os.execv(sys.executable, ['python', 'server.py', str(port), str(clients)])
+    os.execv(sys.executable, ['python', 'server.py', str(port), str(my_clients)])
 
 
 def ask_for_port():
@@ -58,7 +57,11 @@ def data_entry_clients(user):
         clients_connection.commit()
 
 
-def delete_client(name):
+def delete_client(client, name):
+    print(f"user {name} left.")
+    client.close()
+    del clients[client]
+    broadcast(bytes(f"({name}) has left the chat.", 'utf-8'), 'Announcer: ')
     print(f"deleting: {name} from DB")
     clients_cursor.execute("DELETE FROM clients WHERE users=(?)", (name,))
     clients_connection.commit()
@@ -67,7 +70,6 @@ def delete_client(name):
 def broadcast(message, prefix='Unknown: '):
     today = date.today()
     create_table_messages(today)
-    # date_format = today.strftime("[%d %b-%y]")
     date_format = datetime.now().strftime('[%Y-%m-%d|%H:%M:%S]')
     data_entry_messages(today, date_format, prefix, message.decode('utf-8'))
     for s in clients:
@@ -110,7 +112,6 @@ def handler(client):
         data_entry_clients(name)
         send_users_to_client(client)
         send_daily_to_client(client)
-        # TODO: for loopa igenom databasens table för att visa tidigare meddelanden för clienten ☺ så typ for message in db: client.send(bytes(f"{time} {name}: {message}"))
         client.send(bytes("welcome %s, to quit type quit()" % name, 'utf-8'))
         broadcast(bytes(f"[{name}] has joined the chat!", 'utf-8'), 'Announcer: ')
         clients[client] = name
@@ -118,15 +119,12 @@ def handler(client):
             try:
                 message = client.recv(BUFFSIZE)
             except ConnectionResetError:
-                restart(PORT, MAX_CLIENTS)
+                delete_client(client, name)
+                break
             if message != bytes("quit()", 'utf-8'):
                 broadcast(message, name+': ')
             else:
-                print(f"user: {name} left.")
-                client.close()
-                del clients[client]
-                broadcast(bytes(f"({name}) has left the chat.", 'utf-8'), 'Announcer: ')
-                delete_client(name)
+                delete_client(client, name)
                 break
     except ConnectionResetError:
         print("client disconnected without giving a username. :(")

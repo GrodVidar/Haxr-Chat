@@ -146,7 +146,7 @@ if __name__ == "__main__":
     else:
         FONT = ask_for_font()
 
-    if len(sys.argv) >=5:
+    if len(sys.argv) >= 5:
         try:
             if 5 <= int(sys.argv[4]) <= 25:
                 FONT_SIZE = int(sys.argv[4])
@@ -186,6 +186,7 @@ if __name__ == "__main__":
 
     entry_field = Entry(bottom_frame, textvariable=my_message, bg="black", fg="green", selectbackground="green", selectforeground="black")
     entry_field.bind("<Return>", send)
+    entry_field.focus()
     entry_field.pack()
     send_button = Button(bottom_frame, text="Send", command=send)
     send_button.pack()
