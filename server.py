@@ -122,21 +122,11 @@ def handler(client):
         while True:
             try:
                 message = client.recv(BUFFSIZE)
-                utf_message = bytes(message, 'utf-8')
             except ConnectionResetError:
                 delete_client(client, name)
                 break
             if message != bytes("quit()", 'utf-8'):
                 broadcast(message, name+': ')
-            elif utf_message[0] == '/' and (utf_message[1] == 'w' or utf_message[1] == 'W'):
-                for names in clients:
-                    print(names)
-                if len(utf_message.split()) >= 3:
-                    receiver_client = utf_message.split()[1]
-                    if receiver_client in CLIENTS:
-                        my_message = utf_message.split(' ', 2)[2]
-                        whisper(receiver_client, my_message)
-
             else:
                 delete_client(client, name)
                 break
