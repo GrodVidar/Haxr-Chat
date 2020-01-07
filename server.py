@@ -117,13 +117,20 @@ def send_users_to_client(client):
             sleep(.05)
 
 
-def whisper(my_message, receiver_client):
-    pass
+def whisper(sender, my_message):
+    print("whisper called")
+    if my_message.split()[1] in CLIENTS:
+        print("whisper client found")
+        receiver = my_message.split()[1]
+        message = my_message.split(' ', 2)[2]
+        for client in clients:
+            if clients[client] == receiver:
+                client.send(bytes(f"{sender} whispers: {message}", 'utf-8'))
+                return
 
 
 def handler(client):
     try:
-        sent_this_minute = True
         name = client.recv(BUFFSIZE).decode('utf-8')
         if len(name) == 1:
             client.send(bytes("name too short, setting name to Unknown", 'utf-8'))
@@ -143,7 +150,9 @@ def handler(client):
             except ConnectionResetError:
                 delete_client(client, name)
                 break
-            if message != bytes("quit()", 'utf-8'):
+            if message.decode('utf-8')[:2] == "/w":
+                whisper(name, message.decode('utf-8'))
+            elif message != bytes("quit()", 'utf-8'):
                 broadcast(message, name+': ')
             else:
                 delete_client(client, name)

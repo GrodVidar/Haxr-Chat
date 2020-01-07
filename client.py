@@ -66,6 +66,8 @@ def send(event=None):
     message2 = ''
     if my_message.get() == "!dad":
         (message, message2) = get_dad_joke()
+    if my_message.get()[:2] == '/w':
+        message_list.insert(END, f'you whisper: "{my_message.get().split(" ", 2)[2]}" to {my_message.get().split()[1]}')
     my_message.set("")  # Clears input field.
     try:
         client_socket.send(bytes(message, "utf-8"))
