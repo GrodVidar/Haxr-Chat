@@ -4,6 +4,8 @@ from datetime import date, datetime
 import sys
 import os
 import sqlite3
+import requests
+import json
 from time import sleep
 
 
@@ -76,6 +78,20 @@ def broadcast(message, prefix='Unknown: '):
         s.send(bytes(date_format + ' ' + prefix, 'utf-8')+message)
 
 
+def send_temp():
+    sent_this_minute = True
+    with open("key.txt", 'r') as file:
+        key = file.readline()
+        while True:
+            if int(datetime.now().strftime('%M')) % 5 == 0 and not sent_this_minute:
+                resp = requests.get(f"https://api.openweathermap.org/data/2.5/weather?id=2673730&APPID={key}&units=metric")
+                my_json = json.loads(resp.text)
+                broadcast(bytes(f"the weather in {my_json['name']} is {my_json['main']['temp']} C°", 'utf-8'), 'Weather-announcer: ')
+                sent_this_minute = True
+            elif int(datetime.now().strftime('%M')) % 5 != 0 and sent_this_minute:
+                sent_this_minute = False
+
+
 def send_daily_to_client(client):
     today = date.today()
     table = today.strftime('%B_%d_%Y')
@@ -107,6 +123,7 @@ def whisper(my_message, receiver_client):
 
 def handler(client):
     try:
+        sent_this_minute = True
         name = client.recv(BUFFSIZE).decode('utf-8')
         if len(name) == 1:
             client.send(bytes("name too short, setting name to Unknown", 'utf-8'))
@@ -119,6 +136,7 @@ def handler(client):
         client.send(bytes("welcome %s, to quit type quit()" % name, 'utf-8'))
         broadcast(bytes(f"[{name}] has joined the chat!", 'utf-8'), 'Announcer: ')
         clients[client] = name
+        threading.Thread(target=send_temp).start()
         while True:
             try:
                 message = client.recv(BUFFSIZE)

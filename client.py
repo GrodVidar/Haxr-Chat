@@ -5,6 +5,8 @@ from time import sleep
 import sys
 import os
 import re
+import requests
+import json
 from tkinter import font # om vi vill lägga till fonts, venne hur viktigt det är lmao
 
 
@@ -22,6 +24,12 @@ def update_online():
     clients_list.insert(END, "Online:")
     for client in CLIENTS:
         clients_list.insert(END, client)
+
+
+def get_dad_joke():
+    resp = requests.get("https://us-central1-dadsofunny.cloudfunctions.net/DadJokes/random/jokes")
+    my_json = json.loads(resp.text)
+    return my_json['setup'], my_json['punchline']
 
 
 def receive():
@@ -55,9 +63,14 @@ def receive():
 
 def send(event=None):
     message = my_message.get()
+    message2 = ''
+    if my_message.get() == "!dad":
+        (message, message2) = get_dad_joke()
     my_message.set("")  # Clears input field.
     try:
-        client_socket.send(bytes(message, "utf8"))
+        client_socket.send(bytes(message, "utf-8"))
+        if message2 != '':
+            client_socket.send(bytes(message2, "utf-8"))
     except ConnectionResetError:
         message_list.insert(END, "Lost connection to Server, restarting...")
         sleep(3)
