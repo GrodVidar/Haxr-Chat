@@ -82,6 +82,7 @@ def send_temp():
     sent_this_minute = True
     with open("key.txt", 'r') as file:
         key = file.readline()
+        print(key)
         while True:
             if int(datetime.now().strftime('%M')) % 5 == 0 and not sent_this_minute:
                 resp = requests.get(f"https://api.openweathermap.org/data/2.5/weather?id=2673730&APPID={key}&units=metric")
@@ -102,7 +103,7 @@ def send_daily_to_client(client):
             if 'Announcer' not in row[1]:
                 try:
                     client.send(bytes(f"{row[0]} {row[1]}{row[2]}", 'utf-8'))
-                    sleep(.05)
+                    sleep(.07)
                 except ConnectionResetError:
                     return
 
