@@ -7,6 +7,7 @@ import os
 import re
 import requests
 import json
+from kryp import kryp, dekryp
 from tkinter import font # om vi vill lägga till fonts, venne hur viktigt det är lmao
 
 
@@ -54,9 +55,23 @@ def receive():
                         update_online()
             elif 'quit()' in message:
                 update_online()
-            if message[0] != '!':
+            if 'Weather-announcer' in message or 'Announcer' in message or 'welcome' in message:
                 message_list.insert(END, message)
                 message_list.see(END)
+            elif message[0] != '!':
+                if len(message.split()) > 2:
+                    print("decrypting")
+                    crypted_msg = message.split(' ', 2)
+                    crypted_msg[2] = dekryp(crypted_msg[2])
+                    decrypted_msg = ''
+                    for word in crypted_msg:
+                        decrypted_msg += ' ' + word
+                    message_list.insert(END, decrypted_msg)
+                    message_list.see(END)
+                else:
+                    print("not decrypting")
+                    message_list.insert(END, message)
+                    message_list.see(END)
         except OSError:
             break
 
@@ -68,9 +83,12 @@ def send(event=None):
         (message, message2) = get_dad_joke()
     my_message.set("")  # Clears input field.
     try:
-        client_socket.send(bytes(message, "utf-8"))
-        if message2 != '':
-            client_socket.send(bytes(message2, "utf-8"))
+        if message[0] == '/' or message[0] == '-' or 'quit()' in message:
+            client_socket.send(bytes(message, "utf-8"))
+        else:
+            client_socket.send(bytes(kryp(message), "utf-8"))
+            if message2 != '':
+                client_socket.send(bytes(kryp(message2), "utf-8"))
     except ConnectionResetError:
         message_list.insert(END, "Lost connection to Server, restarting...")
         sleep(3)

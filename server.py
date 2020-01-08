@@ -7,6 +7,7 @@ import sqlite3
 import requests
 import json
 from time import sleep
+from kryp import dekryp
 
 
 def restart(port, my_clients):
@@ -66,6 +67,7 @@ def delete_client(client, name):
     print(f"user {name} left.")
     client.close()
     del clients[client]
+    del CLIENTS[CLIENTS.index(name)]
     broadcast(bytes(f"({name}) has left the chat.", 'utf-8'), 'Announcer: ', False)
     print(f"deleting: {name} from DB")
     clients_cursor.execute("DELETE FROM clients WHERE users=(?)", (name,))
@@ -95,7 +97,6 @@ def send_temp():
                     sent_this_minute = True
                 elif int(datetime.now().strftime('%M')) % 5 != 0 and sent_this_minute:
                     sent_this_minute = False
-
 
 
 def send_old_messages(client, day):
@@ -206,9 +207,9 @@ def accept_connections():
         client, client_address = SERVER.accept()
         print("%s:%s connected." % client_address)
         client.send(bytes("Enter Username", 'utf-8'))
-        name = client.recv(BUFFSIZE).decode('utf-8')
+        name = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
         while not name_given:
-            if name in CLIENTS or len(name) < 2:
+            if name in CLIENTS or len(name) < 2 or len(name.split()) < 1:
                 client.send(bytes("Username taken, please enter another", 'utf-8'))
                 name = client.recv(BUFFSIZE).decode('utf-8')
             else:
