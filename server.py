@@ -154,12 +154,8 @@ def whisper(sender_sock, sender, my_message):
         sender_sock.send(bytes(f"{my_message.split()[1]} not recognized, /w syntax: /w [recipient_name] [message]", 'utf-8'))
 
 
-def handler(client):
+def handler(client, name):
     try:
-        name = client.recv(BUFFSIZE).decode('utf-8')
-        if len(name) == 1:
-            client.send(bytes("name too short, setting name to Unknown", 'utf-8'))
-            name = 'Unknown'
         CLIENTS.append(name)
         create_table_clients()
         data_entry_clients(name)
@@ -206,11 +202,19 @@ def handler(client):
 
 def accept_connections():
     while True:
+        name_given = False
         client, client_address = SERVER.accept()
         print("%s:%s connected." % client_address)
-        client.send(bytes("Enter Username: ", 'utf-8'))
+        client.send(bytes("Enter Username", 'utf-8'))
+        name = client.recv(BUFFSIZE).decode('utf-8')
+        while not name_given:
+            if name in CLIENTS or len(name) < 2:
+                client.send(bytes("Username taken, please enter another", 'utf-8'))
+                name = client.recv(BUFFSIZE).decode('utf-8')
+            else:
+                name_given = True
         addresses[client] = client_address
-        threading.Thread(target=handler, args=(client,)).start()
+        threading.Thread(target=handler, args=(client, name,)).start()
 
 
 if __name__ == "__main__":
