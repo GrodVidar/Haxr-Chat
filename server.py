@@ -50,7 +50,10 @@ def data_entry_messages(today, date_format, user, message):
 
 
 def create_table_clients():
-    clients_cursor.execute("CREATE TABLE IF NOT EXISTS clients (users TEXT)")
+    try:
+        clients_cursor.execute("CREATE TABLE IF NOT EXISTS clients (users TEXT)")
+    except sqlite3.ProgrammingError as w:
+        print(w)
 
 
 def data_entry_clients(user):
@@ -84,13 +87,15 @@ def send_temp():
     with open("key.txt", 'r') as file:
         key = file.readline()
         while True:
-            if int(datetime.now().strftime('%M')) % 5 == 0 and not sent_this_minute:
-                resp = requests.get(f"https://api.openweathermap.org/data/2.5/weather?id=2673730&APPID={key}&units=metric")
-                my_json = json.loads(resp.text)
-                broadcast(bytes(f"the weather in {my_json['name']} is {my_json['main']['temp']} C°", 'utf-8'), 'Weather-announcer: ', False)
-                sent_this_minute = True
-            elif int(datetime.now().strftime('%M')) % 5 != 0 and sent_this_minute:
-                sent_this_minute = False
+            if len(CLIENTS) > 0:
+                if int(datetime.now().strftime('%M')) % 5 == 0 and not sent_this_minute:
+                    resp = requests.get(f"https://api.openweathermap.org/data/2.5/weather?id=2673730&APPID={key}&units=metric")
+                    my_json = json.loads(resp.text)
+                    broadcast(bytes(f"the weather in {my_json['name']} is {my_json['main']['temp']} C°", 'utf-8'), 'Weather-announcer: ', False)
+                    sent_this_minute = True
+                elif int(datetime.now().strftime('%M')) % 5 != 0 and sent_this_minute:
+                    sent_this_minute = False
+
 
 
 def send_old_messages(client, day):
@@ -163,7 +168,6 @@ def handler(client):
         client.send(bytes("welcome %s, to quit type quit()" % name, 'utf-8'))
         broadcast(bytes(f"[{name}] has joined the chat!", 'utf-8'), 'Announcer: ', False)
         clients[client] = name
-        threading.Thread(target=send_temp).start()
         while True:
             try:
                 message = client.recv(BUFFSIZE)
@@ -259,6 +263,7 @@ if __name__ == "__main__":
         clients_cursor.execute("DROP TABLE clients")
     print("Awaiting connections...")
     ACCEPT_THREAD = threading.Thread(target=accept_connections)
+    threading.Thread(target=send_temp).start()
     ACCEPT_THREAD.start()
     ACCEPT_THREAD.join()
     messages_cursor.close()
