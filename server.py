@@ -63,17 +63,18 @@ def delete_client(client, name):
     print(f"user {name} left.")
     client.close()
     del clients[client]
-    broadcast(bytes(f"({name}) has left the chat.", 'utf-8'), 'Announcer: ')
+    broadcast(bytes(f"({name}) has left the chat.", 'utf-8'), 'Announcer: ', False)
     print(f"deleting: {name} from DB")
     clients_cursor.execute("DELETE FROM clients WHERE users=(?)", (name,))
     clients_connection.commit()
 
 
-def broadcast(message, prefix='Unknown: '):
+def broadcast(message, prefix='Unknown: ', save=True):
     today = date.today()
     create_table_messages(today)
     date_format = datetime.now().strftime('[%Y-%m-%d|%H:%M:%S]')
-    data_entry_messages(today, date_format, prefix, message.decode('utf-8'))
+    if save:
+        data_entry_messages(today, date_format, prefix, message.decode('utf-8'))
     for s in clients:
         s.send(bytes(date_format + ' ' + prefix, 'utf-8')+message)
 
@@ -86,20 +87,36 @@ def send_temp():
             if int(datetime.now().strftime('%M')) % 5 == 0 and not sent_this_minute:
                 resp = requests.get(f"https://api.openweathermap.org/data/2.5/weather?id=2673730&APPID={key}&units=metric")
                 my_json = json.loads(resp.text)
-                broadcast(bytes(f"the weather in {my_json['name']} is {my_json['main']['temp']} C°", 'utf-8'), 'Weather-announcer: ')
+                broadcast(bytes(f"the weather in {my_json['name']} is {my_json['main']['temp']} C°", 'utf-8'), 'Weather-announcer: ', False)
                 sent_this_minute = True
             elif int(datetime.now().strftime('%M')) % 5 != 0 and sent_this_minute:
                 sent_this_minute = False
 
 
-def send_daily_to_client(client):
+def send_old_messages(client, day):
+    date = day.split()[1]
+    messages_cursor.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{date}'")
+    if messages_cursor.fetchone()[0] == 1:
+        messages_cursor.execute(f"SELECT * from {day.split()[1]}")
+        for row in messages_cursor.fetchall():
+            if 'Announcer' not in row[1] and 'Weather-announcer' not in row[1]:
+                try:
+                    client.send(bytes(f"{row[0]} {row[1]}{row[2]}", 'utf-8'))
+                    sleep(.07)
+                except ConnectionResetError:
+                    return
+    else:
+        client.send(bytes(f"{day.split()[1]} not found syntax: -d [fullmonthname_date_fullyear]", 'utf-8'))
+
+
+def send_daily_messages_to_client(client):
     today = date.today()
     table = today.strftime('%B_%d_%Y')
     messages_cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name=(?)", (table,))
     if messages_cursor.fetchone()[0] == 1:
         messages_cursor.execute(f"SELECT * from {table}")
         for row in messages_cursor.fetchall():
-            if 'Announcer' not in row[1]:
+            if 'Announcer' not in row[1] and 'Weather-announcer' not in row[1]:
                 try:
                     client.send(bytes(f"{row[0]} {row[1]}{row[2]}", 'utf-8'))
                     sleep(.07)
@@ -117,7 +134,7 @@ def send_users_to_client(client):
             sleep(.05)
 
 
-def whisper(sender, my_message):
+def whisper(sender_sock, sender, my_message):
     print("whisper called")
     if my_message.split()[1] in CLIENTS:
         print("whisper client found")
@@ -125,8 +142,11 @@ def whisper(sender, my_message):
         message = my_message.split(' ', 2)[2]
         for client in clients:
             if clients[client] == receiver:
+                sender_sock.send(bytes(f"you whisper: {message} to {my_message.split()[1]}", 'utf-8'))
                 client.send(bytes(f"{sender} whispers: {message}", 'utf-8'))
                 return
+    else:
+        sender_sock.send(bytes(f"{my_message.split()[1]} not recognized, /w syntax: /w [recipient_name] [message]", 'utf-8'))
 
 
 def handler(client):
@@ -139,9 +159,9 @@ def handler(client):
         create_table_clients()
         data_entry_clients(name)
         send_users_to_client(client)
-        send_daily_to_client(client)
+        send_daily_messages_to_client(client)
         client.send(bytes("welcome %s, to quit type quit()" % name, 'utf-8'))
-        broadcast(bytes(f"[{name}] has joined the chat!", 'utf-8'), 'Announcer: ')
+        broadcast(bytes(f"[{name}] has joined the chat!", 'utf-8'), 'Announcer: ', False)
         clients[client] = name
         threading.Thread(target=send_temp).start()
         while True:
@@ -150,8 +170,23 @@ def handler(client):
             except ConnectionResetError:
                 delete_client(client, name)
                 break
-            if message.decode('utf-8')[:2] == "/w":
-                whisper(name, message.decode('utf-8'))
+            if message.decode('utf-8')[0] == '/':
+                if message.decode('utf-8')[:2] == '/w':
+                    whisper(client, name, message.decode('utf-8'))
+                else:
+                    client.send(bytes("/ command not recognized, working commands: /w(whisper)", 'utf-8'))
+            elif message.decode('utf-8')[0] == '-':
+                if message.decode('utf-8')[:2] == '-d':
+                    str_message = message.decode('utf-8')
+                    send_old_messages(client, str_message)
+                else:
+                    client.send(bytes("- command not recognized, working commands: -d(get old messages)", 'utf-8'))
+            elif message.decode('utf-8')[0] == '!':
+                if message.decode('utf-8')[:5] == '!anon':
+                    filtered = message.decode('utf-8')[5:]
+                    broadcast(bytes(filtered, 'utf-8'), name+': ', False)
+                else:
+                    client.send(bytes("! command not recognized, working commands: !anon(doesn't save message in db)", 'utf-8'))
             elif message != bytes("quit()", 'utf-8'):
                 broadcast(message, name+': ')
             else:
@@ -159,6 +194,9 @@ def handler(client):
                 break
     except ConnectionResetError:
         print("client disconnected without giving a username. :(")
+        return
+    except BrokenPipeError as e:
+        print(e)
         return
 
 
