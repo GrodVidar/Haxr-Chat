@@ -1,4 +1,5 @@
 # custom ignores
+simple.py
 *.idea
 *venv
 *.db

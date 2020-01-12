@@ -93,7 +93,7 @@ def send_temp():
                 if int(datetime.now().strftime('%M')) % 5 == 0 and not sent_this_minute:
                     resp = requests.get(f"https://api.openweathermap.org/data/2.5/weather?id=2673730&APPID={key}&units=metric")
                     my_json = json.loads(resp.text)
-                    broadcast(bytes(f"the weather in {my_json['name']} is {my_json['main']['temp']} C°", 'utf-8'), 'Weather-announcer: ', False)
+                    broadcast(bytes(f"the weather in {my_json['name']} is {my_json['main']['temp']} °C", 'utf-8'), 'Weather-announcer: ', False)
                     sent_this_minute = True
                 elif int(datetime.now().strftime('%M')) % 5 != 0 and sent_this_minute:
                     sent_this_minute = False
@@ -206,16 +206,20 @@ def accept_connections():
         name_given = False
         client, client_address = SERVER.accept()
         print("%s:%s connected." % client_address)
-        client.send(bytes("Enter Username", 'utf-8'))
-        name = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
-        while not name_given:
-            if name in CLIENTS or len(name) < 2 or len(name.split()) < 1:
-                client.send(bytes("Username taken, please enter another", 'utf-8'))
-                name = client.recv(BUFFSIZE).decode('utf-8')
-            else:
-                name_given = True
-        addresses[client] = client_address
-        threading.Thread(target=handler, args=(client, name,)).start()
+        try:
+            client.send(bytes("Enter Username", 'utf-8'))
+            name = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
+            while not name_given:
+                if name in CLIENTS or len(name) < 2 or len(name.split()) != 1:
+                    client.send(bytes("Username taken, please enter another", 'utf-8'))
+                    name = client.recv(BUFFSIZE).decode('utf-8')
+                else:
+                    name_given = True
+            addresses[client] = client_address
+            threading.Thread(target=handler, args=(client, name,)).start()
+        except BrokenPipeError:
+            client.close()
+            return
 
 
 if __name__ == "__main__":
@@ -261,7 +265,6 @@ if __name__ == "__main__":
     BUFFSIZE = 1024
     SERVER = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     SERVER.bind((HOST, PORT))
-
     SERVER.listen(MAX_CLIENTS)
     clients_cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='clients'")
     if clients_cursor.fetchone()[0] == 1:
