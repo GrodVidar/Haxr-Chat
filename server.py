@@ -205,7 +205,7 @@ def accept_connections():
     while True:
         name_given = False
         client, client_address = SERVER.accept()
-        print("%s:%s connected." % client_address)
+        print(f"[{datetime.now()}] %s:%s connected" % client_address)
         try:
             client.send(bytes("Enter Username", 'utf-8'))
             name = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
@@ -219,7 +219,6 @@ def accept_connections():
             threading.Thread(target=handler, args=(client, name,)).start()
         except BrokenPipeError:
             client.close()
-            return
 
 
 if __name__ == "__main__":
