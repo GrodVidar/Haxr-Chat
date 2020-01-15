@@ -90,6 +90,8 @@ def send(event=None):
     try:
         if message[0] == '/' or message[0] == '-' or 'quit()' in message:
             client_socket.send(bytes(message, "utf-8"))
+        elif message[:5] == '!anon':
+            client_socket.send(bytes(message[:5]+kryp(message[5:]), 'utf-8'))
         else:
             client_socket.send(bytes(kryp(message), "utf-8"))
             if message2 != '':

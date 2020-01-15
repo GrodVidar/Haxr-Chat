@@ -191,21 +191,23 @@ def handler(client, name):
                 break
             if message.decode('utf-8')[0] == '/':
                 if message.decode('utf-8')[:2] == '/w':
-                    whisper(client, name, message.decode('utf-8'))
+                    if len(message.decode('utf-8').split()) > 2:
+                        whisper(client, name, message.decode('utf-8'))
                 else:
-                    client.send(bytes("/ command not recognized, working commands: /w(whisper)", 'utf-8'))
+                    client.send(bytes("command not recognized, working commands: /w(whisper)", 'utf-8'))
             elif message.decode('utf-8')[0] == '-':
                 if message.decode('utf-8')[:2] == '-d':
                     str_message = message.decode('utf-8')
-                    send_old_messages(client, str_message)
+                    if len(str_message.split()) == 2:
+                        send_old_messages(client, str_message)
                 else:
-                    client.send(bytes("- command not recognized, working commands: -d(get old messages)", 'utf-8'))
+                    client.send(bytes("command not recognized, working commands: -d(get old messages)", 'utf-8'))
             elif message.decode('utf-8')[0] == '!':
                 if message.decode('utf-8')[:5] == '!anon':
                     filtered = message.decode('utf-8')[5:]
                     broadcast(bytes(filtered, 'utf-8'), name+': ', False)
                 else:
-                    client.send(bytes("! command not recognized, working commands: !anon(doesn't save message in db)", 'utf-8'))
+                    client.send(bytes("command not recognized, working commands: !anon(doesn't save message in db)", 'utf-8'))
             elif message != bytes("quit()", 'utf-8'):
                 broadcast(message, name+': ')
             else:
@@ -249,48 +251,50 @@ def mail_taken(email):
 
 # if client has connected and types in -r to register, the user gets some prompts to create an account.
 def create_user(client):
-    name_given = False
-    pass_given = False
-    email_given = False
-    client.send(bytes("Please enter a username between 2 and 10 characters long", 'utf-8'))
-    username = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
-    while not name_given:
-        if 10 < len(username) or len(username) < 2 or check_if_name_taken(username):
-            client.send(bytes("Username too short or already taken, please enter another", 'utf-8'))
-            username = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
-        else:
-            name_given = True
-    client.send(bytes("Please enter your email", 'utf-8'))
-    email = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
-    while not email_given:
-        if '@' not in email or mail_taken(email):
-            client.send(bytes("Please enter a valid email-account", 'utf-8'))
-            email = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
-        else:
-            email_given = True
-    client.send(bytes("Please enter a password longer than 3 chars", 'utf-8'))
-    password = client.recv(BUFFSIZE).decode('utf-8')
-    while not pass_given:
-        if len(password) < 3:
-            client.send(bytes("PASSWORD TOO WEAK, MORTAL!!! ENTER A STRONGER!", 'utf-8'))
-            password = client.recv(BUFFSIZE).decode('utf-8')
-        else:
-            pass_given = True
-    send_mail(email, username)
-    return username, password, email
+    try:
+        name_given = False
+        pass_given = False
+        email_given = False
+        client.send(bytes("Please enter a username between 2 and 10 characters long", 'utf-8'))
+        username = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
+        while not name_given:
+            if 10 < len(username) or len(username) < 2 or check_if_name_taken(username):
+                client.send(bytes("Username too short or already taken, please enter another", 'utf-8'))
+                username = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
+            else:
+                name_given = True
+        client.send(bytes("Please enter your email", 'utf-8'))
+        email = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
+        while not email_given:
+            if '@' not in email or mail_taken(email):
+                client.send(bytes("Please enter a valid email-account", 'utf-8'))
+                email = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
+            else:
+                email_given = True
+        client.send(bytes("Please enter a password longer than 3 chars", 'utf-8'))
+        password = client.recv(BUFFSIZE).decode('utf-8')
+        while not pass_given:
+            if len(password) < 3:
+                client.send(bytes("PASSWORD TOO WEAK, MORTAL!!! ENTER A STRONGER!", 'utf-8'))
+                password = client.recv(BUFFSIZE).decode('utf-8')
+            else:
+                pass_given = True
+        send_mail(email, username)
+        db_cursor.execute("INSERT INTO users(username, password, email) VALUES(?, ?, ?)", (username, password, email))
+        db_connection.commit()
+        return username
+    except ConnectionResetError:
+        client.close()
+        return None
 
 
 # verifies if the given password is correct.
 def check_pass(user, password):
-    db_cursor.execute("SELECT username, password FROM users")
-    for row in db_cursor.fetchall():
-        if row[0] == user:
-            if row[1] == password:
-                return True
-            else:
-                return False
-        else:
-            return False
+    db_cursor.execute("SELECT password FROM users WHERE username=?", (user,))
+    if password in db_cursor.fetchone():
+        return True
+    else:
+        return False
 
 
 # the outer main loop, continuously checks for new connections
@@ -301,26 +305,29 @@ def accept_connections():
         print(f"[{datetime.now()}] %s:%s connected" % client_address)
         try:
             while not logged_in:
-                client.send(bytes("Enter Username or -r to Register", 'utf-8'))
-                username = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
-                print(username)
-                if ',q' in username:
-                    username, password, email = create_user(client)
-                    db_cursor.execute("INSERT INTO users(username, password, email) VALUES(?, ?, ?)", (username, password, email))
-                    db_connection.commit()
-                    logged_in = True
-                else:
-                    if check_if_name_taken(username):
-                        client.send(bytes("Enter Password", 'utf-8'))
-                        given_pass = client.recv(BUFFSIZE).decode('utf-8')
-                        if check_pass(username, given_pass):
-                            logged_in = True
-                        else:
-                            client.send(bytes("incorrect credentials!", 'utf-8'))
+                try:
+                    client.send(bytes("Enter Username or -r to Register", 'utf-8'))
+                    username = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
+                    print(username)
+                    if username[:2] == ',q' or username[:2] == '-r':
+                        username = create_user(client)
+                        logged_in = True
                     else:
-                        client.send(bytes("Username not found", 'utf-8'))
-            addresses[client] = client_address
-            threading.Thread(target=handler, args=(client, username,)).start()
+                        if check_if_name_taken(username):
+                            client.send(bytes("Enter Password", 'utf-8'))
+                            given_pass = client.recv(BUFFSIZE).decode('utf-8')
+                            if check_pass(username, given_pass):
+                                logged_in = True
+                            else:
+                                client.send(bytes("incorrect credentials!", 'utf-8'))
+                        else:
+                            client.send(bytes("Username not found", 'utf-8'))
+                except ConnectionResetError:
+                    username = None
+                    break
+            if username:
+                addresses[client] = client_address
+                threading.Thread(target=handler, args=(client, username,)).start()
         except BrokenPipeError:
             client.close()
 
