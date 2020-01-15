@@ -41,26 +41,26 @@ def ask_for_max_clients():
 
 
 def create_table_messages(today):
-    messages_cursor.execute(f"CREATE TABLE IF NOT EXISTS {today.strftime('%B_%d_%Y')}(date TEXT, user TEXT, message TEXT)")
+    db_cursor.execute(f"CREATE TABLE IF NOT EXISTS {today.strftime('%B_%d_%Y')}(date TEXT, user TEXT, message TEXT)")
 
 
 def data_entry_messages(today, date_format, user, message):
-    messages_cursor.execute(f"INSERT INTO {today.strftime('%B_%d_%Y')}(date, user, message) VALUES (?, ?, ?)",
-                            (date_format, user, message))
-    messages_connection.commit()
+    db_cursor.execute(f"INSERT INTO {today.strftime('%B_%d_%Y')}(date, user, message) VALUES (?, ?, ?)",
+                      (date_format, user, message))
+    db_connection.commit()
 
 
 def create_table_clients():
     try:
-        clients_cursor.execute("CREATE TABLE IF NOT EXISTS clients (users TEXT)")
+        db_cursor.execute("CREATE TABLE IF NOT EXISTS clients (users TEXT)")
     except sqlite3.ProgrammingError as w:
         print(w)
 
 
 def data_entry_clients(user):
     if user != 'quit()':
-        clients_cursor.execute("INSERT INTO clients(users) VALUES(?)", (user,))
-        clients_connection.commit()
+        db_cursor.execute("INSERT INTO clients(users) VALUES(?)", (user,))
+        db_connection.commit()
 
 
 def delete_client(client, name):
@@ -70,8 +70,8 @@ def delete_client(client, name):
     del CLIENTS[CLIENTS.index(name)]
     broadcast(bytes(f"({name}) has left the chat.", 'utf-8'), 'Announcer: ', False)
     print(f"deleting: {name} from DB")
-    clients_cursor.execute("DELETE FROM clients WHERE users=(?)", (name,))
-    clients_connection.commit()
+    db_cursor.execute("DELETE FROM clients WHERE users=(?)", (name,))
+    db_connection.commit()
 
 
 def broadcast(message, prefix='Unknown: ', save=True):
@@ -101,10 +101,10 @@ def send_temp():
 
 def send_old_messages(client, day):
     date = day.split()[1]
-    messages_cursor.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{date}'")
-    if messages_cursor.fetchone()[0] == 1:
-        messages_cursor.execute(f"SELECT * from {day.split()[1]}")
-        for row in messages_cursor.fetchall():
+    db_cursor.execute(f"SELECT count(name) FROM sqlite_master WHERE type='table' AND name='{date}'")
+    if db_cursor.fetchone()[0] == 1:
+        db_cursor.execute(f"SELECT * from {day.split()[1]}")
+        for row in db_cursor.fetchall():
             if 'Announcer' not in row[1] and 'Weather-announcer' not in row[1]:
                 try:
                     client.send(bytes(f"{row[0]} {row[1]}{row[2]}", 'utf-8'))
@@ -118,10 +118,10 @@ def send_old_messages(client, day):
 def send_daily_messages_to_client(client):
     today = date.today()
     table = today.strftime('%B_%d_%Y')
-    messages_cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name=(?)", (table,))
-    if messages_cursor.fetchone()[0] == 1:
-        messages_cursor.execute(f"SELECT * from {table}")
-        for row in messages_cursor.fetchall():
+    db_cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name=(?)", (table,))
+    if db_cursor.fetchone()[0] == 1:
+        db_cursor.execute(f"SELECT * from {table}")
+        for row in db_cursor.fetchall():
             if 'Announcer' not in row[1] and 'Weather-announcer' not in row[1]:
                 try:
                     client.send(bytes(f"{row[0]} {row[1]}{row[2]}", 'utf-8'))
@@ -131,10 +131,10 @@ def send_daily_messages_to_client(client):
 
 
 def send_users_to_client(client):
-    clients_cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='clients'")
-    if clients_cursor.fetchone()[0] == 1:
-        clients_cursor.execute("SELECT users FROM clients")
-        for row in clients_cursor.fetchall():
+    db_cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='clients'")
+    if db_cursor.fetchone()[0] == 1:
+        db_cursor.execute("SELECT users FROM clients")
+        for row in db_cursor.fetchall():
             print(f"sending {row[0]} to client")
             client.send(bytes(f"!{row[0]}", 'utf-8'))
             sleep(.05)
@@ -194,29 +194,86 @@ def handler(client, name):
                 delete_client(client, name)
                 break
     except ConnectionResetError:
-        print("client disconnected without giving a username. :(")
+        print("client disconnected")
         return
     except BrokenPipeError as e:
         print(e)
         return
 
 
+def check_if_name_taken(username):
+    db_cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='users'")
+    if db_cursor.fetchone()[0] == 1:
+        db_cursor.execute("SELECT username FROM users")
+        if username in db_cursor.fetchall()[0]:
+            return True
+        else:
+            return False
+    else:
+        return False
+
+
+def create_user(client):
+    name_given = False
+    pass_given = False
+    client.send(bytes("Please enter a username between 2 and 10 characters long", 'utf-8'))
+    username = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
+    while not name_given:
+        if 10 < len(username) or len(username) < 2 or check_if_name_taken(username):
+            client.send(bytes("Username too short or already taken, please enter another", 'utf-8'))
+            username = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
+        else:
+            name_given = True
+    client.send(bytes("Please enter a password longer than 3 chars", 'utf-8'))
+    password = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
+    while not pass_given:
+        if len(password) < 3:
+            client.send(bytes("PASSWORD TOO WEAK, MORTAL!!! ENTER A STRONGER!", 'utf-8'))
+            password = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
+        else:
+            pass_given = True
+    return username, password
+
+
+def check_pass(user, password):
+    db_cursor.execute("SELECT username, password FROM users")
+    for row in db_cursor.fetchall():
+        if row[0] == user:
+            if row[1] == password:
+                return True
+            else:
+                return False
+        else:
+            return False
+
+
 def accept_connections():
     while True:
-        name_given = False
+        logged_in = False
         client, client_address = SERVER.accept()
         print(f"[{datetime.now()}] %s:%s connected" % client_address)
         try:
-            client.send(bytes("Enter Username", 'utf-8'))
-            name = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
-            while not name_given:
-                if name in CLIENTS or len(name) < 2 or len(name.split()) != 1:
-                    client.send(bytes("Username taken, please enter another", 'utf-8'))
-                    name = client.recv(BUFFSIZE).decode('utf-8')
+            while not logged_in:
+                client.send(bytes("Enter Username or -r to Register", 'utf-8'))
+                username = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
+                print(username)
+                if ',q' in username:
+                    username, password = create_user(client)
+                    db_cursor.execute("INSERT INTO users(username, password) VALUES(?, ?)", (username, password))
+                    db_connection.commit()
+                    logged_in = True
                 else:
-                    name_given = True
+                    if check_if_name_taken(username):
+                        client.send(bytes("Enter Password", 'utf-8'))
+                        given_pass = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
+                        if check_pass(username, given_pass):
+                            logged_in = True
+                        else:
+                            client.send(bytes("incorrect credentials!", 'utf-8'))
+                    else:
+                        client.send(bytes("Username not found", 'utf-8'))
             addresses[client] = client_address
-            threading.Thread(target=handler, args=(client, name,)).start()
+            threading.Thread(target=handler, args=(client, username,)).start()
         except BrokenPipeError:
             client.close()
 
@@ -226,10 +283,8 @@ if __name__ == "__main__":
     clients = {}
     addresses = {}
 
-    messages_connection = sqlite3.connect('chat.db', check_same_thread=False)
-    messages_cursor = messages_connection.cursor()
-    clients_connection = sqlite3.connect('online_users.db', check_same_thread=False)
-    clients_cursor = clients_connection.cursor()
+    db_connection = sqlite3.connect('chat.db', check_same_thread=False)
+    db_cursor = db_connection.cursor()
 
     HOST = ''
     if len(sys.argv) >= 2:
@@ -265,14 +320,15 @@ if __name__ == "__main__":
     SERVER = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     SERVER.bind((HOST, PORT))
     SERVER.listen(MAX_CLIENTS)
-    clients_cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='clients'")
-    if clients_cursor.fetchone()[0] == 1:
-        clients_cursor.execute("DROP TABLE clients")
+    db_cursor.execute("SELECT count(name) FROM sqlite_master WHERE type='table' AND name='clients'")
+    if db_cursor.fetchone()[0] == 1:
+        db_cursor.execute("DROP TABLE clients")
+    db_cursor.execute("CREATE TABLE IF NOT EXISTS users(username TEXT, password TEXT)")
     print("Awaiting connections...")
     ACCEPT_THREAD = threading.Thread(target=accept_connections)
     threading.Thread(target=send_temp).start()
     ACCEPT_THREAD.start()
     ACCEPT_THREAD.join()
-    messages_cursor.close()
-    messages_connection.close()
+    db_cursor.close()
+    db_connection.close()
     SERVER.close()
