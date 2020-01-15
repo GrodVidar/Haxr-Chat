@@ -11,8 +11,8 @@ from kryp import kryp, dekryp
 from tkinter import font # om vi vill lägga till fonts, venne hur viktigt det är lmao
 
 
+# restarts the script with given arguments as sysargv.
 def restart(host, port, my_font, font_size):
-    print("argv was", sys.argv)
     print("sys.executable was", sys.executable)
     print("restart now")
     if my_font.isspace() or my_font == '':
@@ -20,6 +20,7 @@ def restart(host, port, my_font, font_size):
     os.execv(sys.executable, ['python', 'client.py', host, str(port), str(my_font), str(font_size)])
 
 
+# updates the online window in TkInter
 def update_online():
     clients_list.delete(0, END)
     clients_list.insert(END, "Online:")
@@ -27,12 +28,14 @@ def update_online():
         clients_list.insert(END, client)
 
 
+# fetches random dad joke from API and broadcasts it.
 def get_dad_joke():
     resp = requests.get("https://us-central1-dadsofunny.cloudfunctions.net/DadJokes/random/jokes")
     my_json = json.loads(resp.text)
     return my_json['setup'], my_json['punchline']
 
 
+# main loop for the client, listens to messages from server.
 def receive():
     while True:
         try:
@@ -77,6 +80,7 @@ def receive():
             break
 
 
+# sends messages to the server.
 def send(event=None):
     message = my_message.get()
     message2 = ''
@@ -99,11 +103,13 @@ def send(event=None):
         window.quit()
 
 
+# when user closes the tkinter window this function is called right before closing.
 def on_closing(event=None):
     my_message.set("quit()")
     send()
 
 
+# asks the user which host it should connect to.
 def ask_for_host():
     host = input('Enter host: ')
     if not host:
@@ -111,6 +117,7 @@ def ask_for_host():
     return host
 
 
+# asks the user what port it should connect to the host through.
 def ask_for_port():
     port = input('Enter port: ')
     if not port:
@@ -122,6 +129,7 @@ def ask_for_port():
             return 1234
 
 
+# asks the user for what font to use in tkinter.
 def ask_for_font():
     my_font = input('Enter desired font("CS") or leave blank for default: ')
     if not my_font or my_font != 'CS':
@@ -131,6 +139,7 @@ def ask_for_font():
         return 'Comic Sans MS'
 
 
+# asks the user for what font size to use in tkinter
 def ask_for_font_size():
     font_size = input("Enter desired font-size:(5-25) ")
     try:
