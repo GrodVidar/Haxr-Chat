@@ -2,30 +2,35 @@ import smtplib
 import ssl
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from email.header import Header
+from email.utils import formataddr
 
 
 def send_mail(email, name):
     port = 465
     with open('key.txt', 'r') as file:
-        password = file.readlines()[1]
+        password = file.readlines()[1].rstrip()
     sender_mail = "chat@grodvidar.se"
     receiver_mail = email
 
     message = MIMEMultipart("alternative")
-    message['Subject'] = "Haxr-Chat registration"
-    message['From'] = sender_mail
+    message['Subject'] = "Registration"
+    message['From'] = formataddr((str(Header('Haxr-Chat', 'utf-8')), sender_mail))
     message['To'] = receiver_mail
 
     text = f"""\
-        Hello {name}
-        Welcome to Haxr-Chat! :)
-        /The Haxr-Chat-group"""
+        Hello {name}!
+        Welcome to Haxr-Chat! ☺
+        Best regards,
+        The Haxr-Chat-group"""
     html = f"""\
         <html>
           <body>
-            <p>Hello {name}<br>
-               Welcome to Haxr-Chat! :)<br>
-               /The Haxr-Chat-group
+            <p>Hello {name}!<br>
+               Welcome to Haxr-Chat! ☺<br>
+               <br>
+               Best regards,<br>
+               The Haxr-Chat-group
             </p>
           </body>
         </html>

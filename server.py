@@ -240,8 +240,10 @@ def mail_taken(email):
         if db_cursor.fetchone() is not None:
             return True
         else:
+            print("not none ", db_cursor.fetchone())
             return False
     else:
+        print("table not found ", db_cursor.fetchone()[0])
         return False
 
 
@@ -261,7 +263,7 @@ def create_user(client):
     client.send(bytes("Please enter your email", 'utf-8'))
     email = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
     while not email_given:
-        if '@' not in email and not mail_taken(email):
+        if '@' not in email or mail_taken(email):
             client.send(bytes("Please enter a valid email-account", 'utf-8'))
             email = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
         else:
