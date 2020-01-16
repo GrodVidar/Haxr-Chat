@@ -172,7 +172,7 @@ def whisper(sender_sock, sender, my_message):
         sender_sock.send(bytes(f"{my_message.split()[1]} not recognized, /w syntax: /w [recipient_name] [message]", 'utf-8'))
 
 
-# inner main loop when a client has successfully connected and logged in.
+# inner main loop while the client has successfully connected and logged in.
 def handler(client, name):
     try:
         CLIENTS.append(name)
@@ -242,10 +242,8 @@ def mail_taken(email):
         if db_cursor.fetchone() is not None:
             return True
         else:
-            print("not none ", db_cursor.fetchone())
             return False
     else:
-        print("table not found ", db_cursor.fetchone()[0])
         return False
 
 
@@ -308,8 +306,7 @@ def accept_connections():
                 try:
                     client.send(bytes("Enter Username or -r to Register", 'utf-8'))
                     username = dekryp(client.recv(BUFFSIZE).decode('utf-8'))
-                    print(username)
-                    if username[:2] == ',q' or username[:2] == '-r':
+                    if username[:2] == ',q' or username[:2] == '-r':  # ',q' is the decrypted version of '-r'
                         username = create_user(client)
                         logged_in = True
                     else:

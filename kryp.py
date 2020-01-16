@@ -1,3 +1,4 @@
+# encrypts/decrypts the given string by adding 1 to the byte values of all chars in the string
 def kryp(ori_string):
     krypet = ''
     for char in ori_string:
@@ -5,7 +6,7 @@ def kryp(ori_string):
         krypet += chr(c)
     return krypet
 
-
+# encrypts/decrypts the given string by subtracting 1 to the byte values of all chars in the string
 def dekryp(krypet):
     ori_string = ''
     for char in krypet:

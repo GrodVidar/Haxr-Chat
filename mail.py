@@ -6,6 +6,7 @@ from email.header import Header
 from email.utils import formataddr
 
 
+# function to send confirmation email.
 def send_mail(email, name):
     port = 465
     with open('key.txt', 'r') as file:

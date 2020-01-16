@@ -42,7 +42,6 @@ def receive():
             message = client_socket.recv(BUFFSIZE).decode('utf-8')
             if message:
                 if message[0] == '!':
-                    print(f"appending {message[1:]}")
                     CLIENTS.append(message[1:])
                     update_online()
                 elif 'Announcer' in message:
@@ -52,7 +51,6 @@ def receive():
                         update_online()
                     elif bool(re.search(r'\((\w+)\)', message)):
                         client = re.search(r'\((\w+)\)', message)
-                        print(f"delete {client.group(1)}")
                         if str(client.group(1)) in CLIENTS:
                             clients_list.delete(CLIENTS.index(client.group(1))+1)
                             CLIENTS.remove(client.group(1))
@@ -64,7 +62,6 @@ def receive():
                     message_list.see(END)
                 elif message[0] != '!':
                     if len(message.split()) > 2:
-                        print("decrypting")
                         crypted_msg = message.split(' ', 2)
                         crypted_msg[2] = dekryp(crypted_msg[2])
                         decrypted_msg = ''
@@ -73,7 +70,6 @@ def receive():
                         message_list.insert(END, decrypted_msg)
                         message_list.see(END)
                     else:
-                        print("not decrypting")
                         message_list.insert(END, message)
                         message_list.see(END)
         except OSError:
