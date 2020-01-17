@@ -6,6 +6,7 @@ def kryp(ori_string):
         krypet += chr(c)
     return krypet
 
+
 # encrypts/decrypts the given string by subtracting 1 to the byte values of all chars in the string
 def dekryp(krypet):
     ori_string = ''

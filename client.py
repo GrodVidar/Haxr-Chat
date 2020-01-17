@@ -28,7 +28,7 @@ def update_online():
         clients_list.insert(END, client)
 
 
-# fetches random dad joke from API and broadcasts it.
+# fetches random dad joke from API and returns it as a tuple.
 def get_dad_joke():
     resp = requests.get("https://us-central1-dadsofunny.cloudfunctions.net/DadJokes/random/jokes")
     my_json = json.loads(resp.text)
@@ -57,6 +57,7 @@ def receive():
                             update_online()
                 elif 'quit()' in message:
                     update_online()
+                # Check if message contains any of below, if so we just inser the message into message_list, w/o decrypting
                 if ('Weather-announcer' in message or 'Announcer' in message or message[0] != '[') and message[0] != '!':
                     message_list.insert(END, message)
                     message_list.see(END)

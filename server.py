@@ -377,7 +377,12 @@ if __name__ == "__main__":
     db_cursor.execute("CREATE TABLE IF NOT EXISTS users(username TEXT, password TEXT, email TEXT)")
     print("Awaiting connections...")
     ACCEPT_THREAD = threading.Thread(target=accept_connections)
-    threading.Thread(target=send_temp).start()
+    try:
+        threading.Thread(rtaget=send_temp).start()
+    except TypeError:
+        print("!!!ERROR!!!\nkey.txt not found, add a text-file named 'key.txt' containing:\n"
+              "The API-key for OpenWheatherMap on the first line\n"
+              "And password for the sender-email on the second.")
     ACCEPT_THREAD.start()
     ACCEPT_THREAD.join()
     db_cursor.close()
