@@ -378,7 +378,7 @@ if __name__ == "__main__":
     print("Awaiting connections...")
     ACCEPT_THREAD = threading.Thread(target=accept_connections)
     try:
-        threading.Thread(rtaget=send_temp).start()
+        threading.Thread(target=send_temp).start()
     except TypeError:
         print("!!!ERROR!!!\nkey.txt not found, add a text-file named 'key.txt' containing:\n"
               "The API-key for OpenWheatherMap on the first line\n"
